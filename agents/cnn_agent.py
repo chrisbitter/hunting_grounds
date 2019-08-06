@@ -1,0 +1,129 @@
+import numpy as np
+import os
+
+from sklearn.preprocessing import OneHotEncoder
+
+import torch
+import torch.nn as nn
+
+
+class Flatten(torch.nn.Module):
+
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+
+        self.operators = nn.ModuleList([
+            nn.Conv2d(3, 30, (3, 3)),
+            nn.MaxPool2d(2),
+            nn.Tanh(),
+            nn.Dropout(.1),
+            nn.Conv2d(30, 20, (3, 3)),
+            nn.MaxPool2d(2),
+            nn.Tanh(),
+            nn.Dropout(.1),
+            nn.Conv2d(20, 10, (3, 3)),
+            nn.Tanh(),
+            nn.Dropout(.1),
+            nn.MaxPool2d(2),
+            Flatten(),
+            nn.Linear(1000, 500),
+            nn.Tanh(),
+            nn.Dropout(.1),
+            nn.Linear(500, 100),
+            nn.Tanh(),
+            nn.Dropout(.1),
+            nn.Linear(100, 5)
+        ])
+
+    def forward(self, x):
+        for operator in self.operators:
+            x = operator(x)
+
+        return x
+
+    def load(self, path="cnn.pt"):
+        pass
+
+
+class CnnAgent(object):
+
+    def __init__(self, input_dim, output_dim):
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        self.action_encoder = OneHotEncoder(range(5))
+
+        self.net = Net()
+        self.target_net = Net()
+        self.target_net.load_state_dict(self.net.state_dict())
+        self.target_net.eval()
+
+        self.optimizer = torch.optim.Adam(self.net.parameters(), 0.0001,
+                                          amsgrad=True)
+        self.loss = nn.MSELoss()
+
+        self.experience = []
+
+    def predict(self, state):
+
+        state = torch.Tensor(state).unsqueeze(0)
+
+        prediction = self.net(state).detach()
+
+        action = np.argmax(prediction)
+
+        return action
+
+    def add_experience(self, state, action, reward, next_state, terminal):
+
+        self.experience.append((state, action, reward, next_state, terminal))
+
+    def train(self, batch_size=32):
+
+        s, a, r, s_, t = [], [], [], [], []
+
+        for idx in np.random.choice(range(len(self.experience)),
+                                    size=batch_size):
+            state, action, reward, next_state, terminal = self.experience[idx]
+
+            s.append(state)
+            a.append(action)
+            r.append(reward)
+            s_.append(next_state)
+            t.append(terminal)
+
+        a_oh = np.zeros((len(a), 5))
+        a_oh[np.arange(len(a)), a] = 1
+
+        s = torch.tensor(s, dtype=torch.float32)
+        a = torch.tensor(a_oh, dtype=torch.float32)
+        r = torch.tensor(r, dtype=torch.float32).unsqueeze(-1)
+        s_ = torch.tensor(s_, dtype=torch.float32)
+        t = torch.tensor(t, dtype=torch.float32).unsqueeze(-1)
+
+        Q_ = self.net(s_, self.net(s_))
+        Q = r + 0.9 * Q_ * (1 - t)
+
+        self.optimizer.zero_grad()
+
+        Qpred = self.net(s)
+
+        # todo
+
+    def load(self, path):
+        if os.path.isfile(path):
+            self.q_table = np.load(path)
+        else:
+            raise ValueError(f"No model found at {path}")
+
+    def save(self, path):
+        np.save(path, self.q_table)
