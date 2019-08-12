@@ -110,7 +110,11 @@ class CnnAgent(object):
         s_ = torch.tensor(s_, dtype=torch.float32)
         t = torch.tensor(t, dtype=torch.float32).unsqueeze(-1)
 
-        Q_ = self.net(s_, self.net(s_))
+        # start frage
+        # Q_ = self.net(s_, self.net(s_))
+        # was ist das? sollte es nicht so sein?
+        Q_ = self.net(s_)
+        # ende
         Q = r + 0.9 * Q_ * (1 - t)
 
         self.optimizer.zero_grad()
@@ -118,6 +122,9 @@ class CnnAgent(object):
         Qpred = self.net(s)
 
         # todo
+        loss = self.loss(Qpred*a_oh, Q*a_oh)
+        loss.backward()
+        self.optimizer.step()
 
     def load(self, path):
         if os.path.isfile(path):
