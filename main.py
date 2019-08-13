@@ -5,13 +5,15 @@ import os
 import imageio
 from tqdm import tqdm
 
+train = False
+
 env = Environment((5, 5))
 
 state_resolution = (100, 100)
 
 agent = Agent(state_resolution, 5)
 
-if False:
+if train:
 
     np.random.seed(73)
 
