@@ -1,5 +1,5 @@
-from agents.cnn_agent import CnnAgent as Agent
-from env.hunting_grounds import HuntingGrounds as Environment
+from agent.cnn_agent import CnnAgent as Agent
+from environment.hunting_grounds import HuntingGrounds as Environment
 import numpy as np
 import os
 import imageio
