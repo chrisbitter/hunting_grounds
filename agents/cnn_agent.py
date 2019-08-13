@@ -110,27 +110,22 @@ class CnnAgent(object):
         s_ = torch.tensor(s_, dtype=torch.float32)
         t = torch.tensor(t, dtype=torch.float32).unsqueeze(-1)
 
-        # start frage
-        # Q_ = self.net(s_, self.net(s_))
-        # was ist das? sollte es nicht so sein?
         Q_ = self.net(s_)
-        # ende
         Q = r + 0.9 * Q_ * (1 - t)
 
         self.optimizer.zero_grad()
 
         Qpred = self.net(s)
 
-        # todo
-        loss = self.loss(Qpred*a_oh, Q*a_oh)
+        loss = self.loss(Qpred*a, Q*a)
         loss.backward()
         self.optimizer.step()
 
     def load(self, path):
         if os.path.isfile(path):
-            self.q_table = np.load(path)
+            self.net.load_state_dict(torch.load(path))
         else:
             raise ValueError(f"No model found at {path}")
 
     def save(self, path):
-        np.save(path, self.q_table)
+        torch.save(self.net.state_dict(), path)

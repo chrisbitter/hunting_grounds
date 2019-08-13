@@ -1,5 +1,9 @@
 from agents.cnn_agent import CnnAgent as Agent
 from env.hunting_grounds import HuntingGrounds as Environment
+import numpy as np
+import os
+import imageio
+from tqdm import tqdm
 
 env = Environment((5, 5))
 
@@ -7,53 +11,58 @@ state_resolution = (100, 100)
 
 agent = Agent(state_resolution, 5)
 
-np.random.seed(73)
+if False:
 
-epochs = 50000
+    np.random.seed(73)
 
-experience = []
+    epochs = 1000
 
-for epoch in tqdm(range(epochs)):
+    experience = []
 
-    env.reset()
+    for epoch in tqdm(range(epochs)):
 
-    terminal = False
+        env.reset()
 
-    step = 0
+        terminal = False
 
-    state = env.state(False)
+        step = 0
 
-    while not terminal:
+        state = env.get_state_image(channels_first=True)
 
-        if epoch / epochs > np.random.random():
-            action = np.random.randint(5)
-        else:
-            action = agent.predict(state)
+        while not terminal:
 
-        reward, terminal = env.step(action)
+            if epoch / epochs > np.random.random():
+                action = np.random.randint(5)
+            else:
+                action = agent.predict(state)
 
-        if step >= 20 and not terminal:
-            terminal = True
-            reward = -1
+            reward, terminal = env.step(action)
 
-        next_state = env.state(False)
+            if step >= 20 and not terminal:
+                terminal = True
+                reward = -1
 
-        agent.add_experience(state, action, reward, next_state, terminal)
+            next_state = env.get_state_image(channels_first=True)
 
-        agent.train()
+            agent.add_experience(state, action, reward, next_state, terminal)
 
-        state = next_state
+            agent.train()
 
-        step += 1
+            state = next_state
 
-    agent.save("q_table.npy")
+            step += 1
+
+    agent.save("cnn_agent.pt")
+
+else:
+    agent.load("cnn_agent.pt")
 
 import time
 
-for test_id in range(5):
+for test_id in tqdm(range(5)):
 
     if not os.path.exists("plots/{}".format(test_id)):
-        os.mkdir("plots/{}".format(test_id))
+        os.makedirs("plots/{}".format(test_id))
 
     terminal = False
 
@@ -69,7 +78,7 @@ for test_id in range(5):
 
     while not terminal:
 
-        state = env.state()
+        state = env.get_state_image(channels_first=True)
 
         action = agent.predict(state)
 
