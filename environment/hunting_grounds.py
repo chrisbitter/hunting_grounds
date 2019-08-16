@@ -130,24 +130,38 @@ class HuntingGrounds(gym.Env):
         while self.prey == self.hunter:
             self.place_prey()
 
-        plt.close()
+    def render(self, interactive=False, save_file=None, alpha=1.):
 
-    def render(self, mode='human', save_file=None, alpha=1.):
 
-        fig, ax = plt.subplots()
+        if interactive:
+
+            if self.ax is None:
+                self.fig, self.ax = plt.subplots()
+                plt.show(block=False)
+            fig, ax = self.fig, self.ax
+
+            plt.cla()
+        else:
+            fig, ax = plt.subplots()
+
+
         ax.imshow(self.world, cmap="Blues", alpha=.25)
 
         ax.autoscale(False)
 
         ax.scatter(self.hunter[0], self.hunter[1], c="brown", s=500,
-                   alpha=alpha)
+                        alpha=alpha)
 
         ax.scatter(self.prey[0], self.prey[1], c="grey", s=500)
 
         if save_file is not None:
             plt.savefig(save_file)
 
-        plt.close()
+        if interactive:
+            plt.draw()
+            plt.pause(0.1)
+        else:
+            plt.close()
 
 
 if __name__ == "__main__":
