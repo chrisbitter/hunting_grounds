@@ -5,7 +5,7 @@ import os
 import imageio
 from tqdm import tqdm
 
-train = False
+train = True
 
 env = Environment((5, 5))
 

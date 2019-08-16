@@ -84,6 +84,29 @@ class HuntingGrounds(gym.Env):
 
         return img
 
+    def get_state_compressed(self):
+
+        state_hunter, state_prey = np.zeros(self.state_dimensions)
+
+        state_hunter[self.hunter[0], self.hunter[1]] = 1.
+
+        state_prey[self.prey[0], self.prey[1]] = 1.
+
+        state_world = np.expand_dims(self.world, 0)
+
+        state_hunter = np.expand_dims(state_hunter, 0)
+
+        state_prey = np.expand_dims(state_prey, 0)
+
+        return np.concatenate((state_world, state_hunter, state_prey), axis=0)
+
+    def get_state(self, form):
+
+        if form == "image":
+            return self.get_state_image()
+        if form == "raw":
+            return self.get_state_compressed()
+
     def step(self, action):
 
         if action == 0:
