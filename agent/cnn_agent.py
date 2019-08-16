@@ -6,6 +6,8 @@ from sklearn.preprocessing import OneHotEncoder
 import torch
 import torch.nn as nn
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 class Flatten(torch.nn.Module):
 
@@ -22,25 +24,22 @@ class Net(nn.Module):
 
         self.operators = nn.ModuleList([
             nn.Conv2d(3, 30, (3, 3)),
-            nn.MaxPool2d(2),
             nn.Tanh(),
             nn.Dropout(.1),
             nn.Conv2d(30, 20, (3, 3)),
-            nn.MaxPool2d(2),
             nn.Tanh(),
             nn.Dropout(.1),
             nn.Conv2d(20, 10, (3, 3)),
             nn.Tanh(),
             nn.Dropout(.1),
-            nn.MaxPool2d(2),
             Flatten(),
-            nn.Linear(1000, 500),
+            nn.Linear(160, 100),
             nn.Tanh(),
             nn.Dropout(.1),
-            nn.Linear(500, 100),
+            nn.Linear(100, 50),
             nn.Tanh(),
             nn.Dropout(.1),
-            nn.Linear(100, 5)
+            nn.Linear(50, 5)
         ])
 
     def forward(self, x):
@@ -67,6 +66,9 @@ class CnnAgent(object):
         self.target_net.load_state_dict(self.net.state_dict())
         self.target_net.eval()
 
+        self.net.to(device)
+        self.target_net.to(device)
+
         self.optimizer = torch.optim.Adam(self.net.parameters(), 0.0001,
                                           amsgrad=True)
         self.loss = nn.MSELoss()
@@ -75,9 +77,9 @@ class CnnAgent(object):
 
     def predict(self, state):
 
-        state = torch.Tensor(state).unsqueeze(0)
+        state = torch.Tensor(state).unsqueeze(0).to(device)
 
-        prediction = self.net(state).detach()
+        prediction = self.net(state).cpu().detach()
 
         action = np.argmax(prediction)
 
@@ -104,11 +106,11 @@ class CnnAgent(object):
         a_oh = np.zeros((len(a), 5))
         a_oh[np.arange(len(a)), a] = 1
 
-        s = torch.tensor(s, dtype=torch.float32)
-        a = torch.tensor(a_oh, dtype=torch.float32)
-        r = torch.tensor(r, dtype=torch.float32).unsqueeze(-1)
-        s_ = torch.tensor(s_, dtype=torch.float32)
-        t = torch.tensor(t, dtype=torch.float32).unsqueeze(-1)
+        s = torch.tensor(s, dtype=torch.float32).to(device)
+        a = torch.tensor(a_oh, dtype=torch.float32).to(device)
+        r = torch.tensor(r, dtype=torch.float32).unsqueeze(-1).to(device)
+        s_ = torch.tensor(s_, dtype=torch.float32).to(device)
+        t = torch.tensor(t, dtype=torch.float32).unsqueeze(-1).to(device)
 
         Q_ = self.net(s_)
         Q = r + 0.9 * Q_ * (1 - t)
@@ -117,7 +119,7 @@ class CnnAgent(object):
 
         Qpred = self.net(s)
 
-        loss = self.loss(Qpred*a, Q*a)
+        loss = self.loss(Qpred * a, Q * a)
         loss.backward()
         self.optimizer.step()
 

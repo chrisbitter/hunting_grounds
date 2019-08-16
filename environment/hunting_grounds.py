@@ -1,25 +1,26 @@
-import gym
-from scipy.misc import imresize
 import logging
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
 from pylab import *
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
 
 
-class HuntingGrounds(gym.Env):
+class HuntingGrounds():
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, state_dimensions=(10, 10)):
+    def __init__(self, world_dimensions=(10, 10)):
         self.logger = logging.Logger("frozen-lake", level=logging.DEBUG)
 
-        self.state_dimensions = state_dimensions
+        self.world_dimensions = world_dimensions
 
-        self.world = np.zeros(self.state_dimensions)
+        self.world = np.zeros(self.world_dimensions)
 
         self.hunter = [0, 0]
-        self.prey = np.array(self.state_dimensions) - 1
+        self.prey = np.array(self.world_dimensions) - 1
 
-        self.movement_scaling_factors = 1 / np.array(self.state_dimensions)
+        self.movement_scaling_factors = 1 / np.array(self.world_dimensions)
+        self.ax = None
 
         self.reset()
 
@@ -27,9 +28,9 @@ class HuntingGrounds(gym.Env):
 
         if new_world is None:
             # self.world = np.zeros(self.state_dimensions)
-            self.world = np.random.random_sample(self.state_dimensions)
+            self.world = np.random.random_sample(self.world_dimensions)
 
-        elif new_world.ndim == self.state_dimensions:
+        elif new_world.ndim == self.world_dimensions:
             self.world = new_world
         else:
             raise ValueError("Dimensions of new states must match")
@@ -97,14 +98,14 @@ class HuntingGrounds(gym.Env):
 
         if action == 0:
             pass
-        if action == 1:
+        elif action == 1:
             self.hunter[0] += 1
-        if action == 2:
+        elif action == 2:
             self.hunter[0] -= 1
-        if action == 3:
+        elif action == 3:
             self.hunter[1] += 1
-        if action == 4:
-            self.hunter[0] -= 1
+        elif action == 4:
+            self.hunter[1] -= 1
 
         self.hunter[0] = np.clip(self.hunter[0], 0, self.world.shape[0] - 1)
         self.hunter[1] = np.clip(self.hunter[1], 0, self.world.shape[1] - 1)
@@ -167,8 +168,7 @@ class HuntingGrounds(gym.Env):
 if __name__ == "__main__":
     env = HuntingGrounds((5, 5))
 
-    state = env.get_state_image((100,100))
+    state = env.get_state_raw()
 
-    plt.imshow(state)
-
-    plt.show()
+    print(state.shape)
+    print(state)
