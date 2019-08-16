@@ -52,37 +52,46 @@ class HuntingGrounds(gym.Env):
             y = np.random.randint(0, self.world.shape[1])
         self.prey = [x, y]
 
-    def get_state_image(self, resolution=(100, 100), channels_first=False):
+    def get_state_raw(self):
+        state = np.zeros((3,) + self.world_dimensions)
 
-        fig = Figure(figsize=(5, 5))
-        canvas = FigureCanvas(fig)
-        ax = fig.gca()
+        state[0] = self.world
+        state[1, self.hunter[0], self.hunter[1]] = 1
+        state[2, self.prey[0], self.prey[1]] = 1
 
-        ax.imshow(self.world, cmap="Blues", alpha=.25)
+        return state
 
-        ax.autoscale(False)
-
-        ax.scatter(self.hunter[0], self.hunter[1], c="brown", s=500)
-
-        ax.scatter(self.prey[0], self.prey[1], c="grey", s=500)
-
-        fig.subplots_adjust(bottom=0, top=1, left=0, right=1)
-
-        canvas.draw()  # draw the canvas, cache the renderer
-
-        width, height = fig.get_size_inches() * fig.get_dpi()
-
-        width, height = int(width), int(height)
-
-        img = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(
-            height, width, 3)
-
-        img = imresize(img, resolution + (3,))
-
-        if channels_first:
-            img = np.transpose(img, (2, 0, 1))
-
-        return img
+    # def get_state_image(self, resolution=(100, 100), channels_first=False):
+    #
+    #     fig = Figure(figsize=(5, 5))
+    #     canvas = FigureCanvas(fig)
+    #     ax = fig.gca()
+    #
+    #     ax.imshow(self.world, cmap="Blues", alpha=.25)
+    #
+    #     ax.autoscale(False)
+    #
+    #     ax.scatter(self.hunter[0], self.hunter[1], c="brown", s=500)
+    #
+    #     ax.scatter(self.prey[0], self.prey[1], c="grey", s=500)
+    #
+    #     fig.subplots_adjust(bottom=0, top=1, left=0, right=1)
+    #
+    #     canvas.draw()  # draw the canvas, cache the renderer
+    #
+    #     width, height = fig.get_size_inches() * fig.get_dpi()
+    #
+    #     width, height = int(width), int(height)
+    #
+    #     img = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(
+    #         height, width, 3)
+    #
+    #     img = imresize(img, resolution + (3,))
+    #
+    #     if channels_first:
+    #         img = np.transpose(img, (2, 0, 1))
+    #
+    #     return img
 
     def step(self, action):
 
