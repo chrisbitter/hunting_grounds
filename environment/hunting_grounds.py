@@ -1,28 +1,25 @@
 import logging
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
+import numpy as np
+from utils.visualizer import Visualizer
 
-from pylab import *
-
-
-class HuntingGrounds():
+class HuntingGrounds(object):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, world_dimensions=(10, 10)):
+    def __init__(self, world_dimensions=(10, 10), headless=True):
         self.logger = logging.Logger("frozen-lake", level=logging.DEBUG)
 
         self.world_dimensions = world_dimensions
 
         self.world = np.zeros(self.world_dimensions)
 
-        self.hunter = [0, 0]
-        self.prey = np.array(self.world_dimensions) - 1
+        self.hunter = None
+        self.prey = None
 
         self.movement_scaling_factors = 1 / np.array(self.world_dimensions)
-        self.ax = None
 
         self.reset()
+
+        self.visualizer = Visualizer(headless=headless)
 
     def initialize_world(self, new_world=None):
 
@@ -54,11 +51,15 @@ class HuntingGrounds():
         self.prey = [x, y]
 
     def get_state_raw(self):
-        state = np.zeros((3,) + self.world_dimensions)
+        state_world = self.world
 
-        state[0] = self.world
-        state[1, self.hunter[0], self.hunter[1]] = 1
-        state[2, self.prey[0], self.prey[1]] = 1
+        state_hunters = np.zeros(self.world_dimensions)
+        state_hunters[self.hunter[0], self.hunter[1]] = 1
+
+        state_prey = np.zeros(self.world_dimensions)
+        state_prey[self.prey[0], self.prey[1]] = 1
+
+        state = np.stack((state_world, state_hunters, state_prey))
 
         return state
 
@@ -94,28 +95,11 @@ class HuntingGrounds():
     #
     #     return img
 
-    def get_state_compressed(self):
-
-        state_hunter, state_prey = np.zeros(self.state_dimensions)
-
-        state_hunter[self.hunter[0], self.hunter[1]] = 1.
-
-        state_prey[self.prey[0], self.prey[1]] = 1.
-
-        state_world = np.expand_dims(self.world, 0)
-
-        state_hunter = np.expand_dims(state_hunter, 0)
-
-        state_prey = np.expand_dims(state_prey, 0)
-
-        return np.concatenate((state_world, state_hunter, state_prey), axis=0)
-
-    def get_state(self, form):
-
-        if form == "image":
-            return self.get_state_image()
-        if form == "raw":
-            return self.get_state_compressed()
+    def get_state(self, mode='raw'):
+        if mode == 'raw':
+            return self.get_state_raw()
+        else:
+            raise NotImplementedError(f"mode={mode} not implemented.")
 
     def step(self, action):
 
@@ -154,44 +138,34 @@ class HuntingGrounds():
         while self.prey == self.hunter:
             self.place_prey()
 
-    def render(self, interactive=False, save_file=None, alpha=1.):
-
-
-        if interactive:
-
-            if self.ax is None:
-                self.fig, self.ax = plt.subplots()
-                plt.show(block=False)
-            fig, ax = self.fig, self.ax
-
-            plt.cla()
-        else:
-            fig, ax = plt.subplots()
-
-
-        ax.imshow(self.world, cmap="Blues", alpha=.25)
-
-        ax.autoscale(False)
-
-        ax.scatter(self.hunter[0], self.hunter[1], c="brown", s=500,
-                        alpha=alpha)
-
-        ax.scatter(self.prey[0], self.prey[1], c="grey", s=500)
-
-        if save_file is not None:
-            plt.savefig(save_file)
-
-        if interactive:
-            plt.draw()
-            plt.pause(0.1)
-        else:
-            plt.close()
-
+    def render(self, save_file=None):
+        self.visualizer.render(self.get_state(), save_file=save_file)
 
 if __name__ == "__main__":
-    env = HuntingGrounds((5, 5))
+    import tempfile
 
-    state = env.get_state_raw()
+    env = HuntingGrounds((5, 5), True)
 
+    state = env.get_state()
     print(state.shape)
-    print(state)
+
+    with tempfile.NamedTemporaryFile(suffix=".png") as file:
+
+        env.render(file)
+
+        file.seek(0)
+
+        import matplotlib.pyplot as plt
+        import matplotlib.image as mpimg
+
+        img = mpimg.imread(file)
+        plt.imshow(img)
+
+        plt.axis('off')
+
+        plt.show()
+
+
+
+
+

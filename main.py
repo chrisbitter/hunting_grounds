@@ -10,11 +10,11 @@ import math
 
 train = True
 # save_test_images = True
-render_interactive = False
+headless = False
 
 world_dimensions = (10, 10)
 
-env = Environment(world_dimensions)
+env = Environment(headless=headless)
 
 # state_resolution = (100, 100)
 
@@ -30,7 +30,7 @@ if not os.path.exists(results_folder):
     os.makedirs(results_folder)
 
 
-def run_until_terminal(agent, exploration_probability=0.):
+def run_until_terminal(agent, exploration_probability=0., max_steps=20):
     experiences = []
 
     state = env.get_state_raw()
@@ -48,7 +48,7 @@ def run_until_terminal(agent, exploration_probability=0.):
 
         reward, terminal = env.step(action)
 
-        if step >= 20 and not terminal:
+        if step >= max_steps and not terminal:
             terminal = True
             reward = -1
 
@@ -91,7 +91,6 @@ def train(agent, epochs=1):
         os.path.join(results_folder, f"{results_id}-statistics.csv"))
 
 
-
 def test(agent, test_runs=1, results_path=None):
     padding_test_runs = int(math.ceil(math.log10(test_runs)))
     padding_steps = int(math.ceil(math.log10(MAX_STEPS)))
@@ -107,7 +106,7 @@ def test(agent, test_runs=1, results_path=None):
         figure_name = os.path.join(results_path,
                                    f"{test_run:0{padding_test_runs}}-{0:0{padding_steps}}.png")
 
-        env.render(interactive=render_interactive, save_file=figure_name)
+        env.render(save_file=figure_name)
 
         while not terminal:
 
@@ -124,7 +123,7 @@ def test(agent, test_runs=1, results_path=None):
             figure_name = os.path.join(results_path,
                                        f"{test_run:0{padding_test_runs}}-{(step + 1):0{padding_steps}}.png")
 
-            env.render(interactive=render_interactive, save_file=figure_name)
+            env.render(save_file=figure_name)
 
             step += 1
 
@@ -133,13 +132,14 @@ def test(agent, test_runs=1, results_path=None):
         frames = []
 
         # with imageio.get_writer(f'{results_id}.gif', mode='I') as writer:
-        for f in sorted([f for f in os.listdir(results_path) if f.endswith(".png")]):
-
+        for f in sorted(
+                [f for f in os.listdir(results_path) if f.endswith(".png")]):
             image = imageio.imread(os.path.join(results_path, f))
             frames.append(image)
             # writer.append_data(image)
 
-        imageio.mimsave(os.path.join(results_path, f'{results_id}.gif'), frames, 'GIF', duration=0.5)
+        imageio.mimsave(os.path.join(results_path, f'{results_id}.gif'), frames,
+                        'GIF', duration=0.5)
 
 
 if train:
