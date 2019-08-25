@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from utils.visualizer import Visualizer
+from environment.utils.visualizer import Visualizer
 
 class HuntingGrounds(object):
     metadata = {'render.modes': ['human']}
