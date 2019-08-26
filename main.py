@@ -30,10 +30,10 @@ if not os.path.exists(results_folder):
     os.makedirs(results_folder)
 
 
-def run_until_terminal(agent, exploration_probability=0., max_steps=20):
+def run_until_terminal(agent, environment, exploration_probability=0., max_steps=100):
     experiences = []
 
-    state = env.get_state_raw()
+    state = environment.get_state_raw()
 
     terminal = False
 
@@ -46,7 +46,7 @@ def run_until_terminal(agent, exploration_probability=0., max_steps=20):
         else:
             action = agent.predict(state)
 
-        reward, terminal = env.step(action)
+        reward, terminal = environment.step(action)
 
         if step >= max_steps and not terminal:
             terminal = True
