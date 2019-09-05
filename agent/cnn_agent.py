@@ -6,7 +6,7 @@ from sklearn.preprocessing import OneHotEncoder
 import torch
 import torch.nn as nn
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 
 class Flatten(torch.nn.Module):
@@ -85,25 +85,34 @@ class CnnAgent(object):
 
         return action
 
-    def add_experience(self, state, action, reward, next_state, terminal):
+    def add_experience(self, experience):
 
-        self.experience.append((state, action, reward, next_state, terminal))
+        self.experience.append(experience)
 
     def train(self, batch_size=32):
 
         s, a, r, s_, t = [], [], [], [], []
 
-        for idx in np.random.choice(range(len(self.experience)),
-                                    size=batch_size):
-            state, action, reward, next_state, terminal = self.experience[idx]
+        indices = np.random.choice(list(set(range(len(self.experience)))), batch_size)
 
-            s.append(state)
-            a.append(action)
-            r.append(reward)
-            s_.append(next_state)
-            t.append(terminal)
+        for index in indices:
+
+            sample = self.experience[index]
+
+            s.append(sample["s"])
+            a.append(sample["a"])
+            r.append(sample["r"])
+            s_.append(sample["s_"])
+            t.append(sample["t"])
+
+        s = np.array(s)
+        a = np.array(a)
+        r = np.array(r)
+        s_ = np.array(s_)
+        t = np.array(t, dtype=int)
 
         a_oh = np.zeros((len(a), 5))
+
         a_oh[np.arange(len(a)), a] = 1
 
         s = torch.tensor(s, dtype=torch.float32).to(device)
@@ -122,6 +131,7 @@ class CnnAgent(object):
         loss = self.loss(Qpred * a, Q * a)
         loss.backward()
         self.optimizer.step()
+
 
     def load(self, path):
         if os.path.isfile(path):

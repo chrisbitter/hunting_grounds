@@ -2,6 +2,7 @@ import logging
 import numpy as np
 from .utils.visualizer import Visualizer
 
+
 class HuntingGrounds(object):
     metadata = {'render.modes': ['human']}
 
@@ -101,6 +102,12 @@ class HuntingGrounds(object):
         else:
             raise NotImplementedError(f"mode={mode} not implemented.")
 
+    def get_state_dimensions(self, mode='raw'):
+        if mode == 'raw':
+            return self.world_dimensions + (3,)
+        else:
+            raise NotImplementedError(f"mode={mode} not implemented.")
+
     def step(self, action):
 
         if action == 0:
@@ -141,6 +148,7 @@ class HuntingGrounds(object):
     def render(self, save_file=None):
         self.visualizer.render(self.get_state(), save_file=save_file)
 
+
 if __name__ == "__main__":
     import tempfile
 
@@ -150,7 +158,6 @@ if __name__ == "__main__":
     print(state.shape)
 
     with tempfile.NamedTemporaryFile(suffix=".png") as file:
-
         env.render(file)
 
         file.seek(0)
@@ -164,8 +171,3 @@ if __name__ == "__main__":
         plt.axis('off')
 
         plt.show()
-
-
-
-
-
