@@ -54,10 +54,11 @@ class Net(nn.Module):
 
 class CnnAgent(object):
 
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim, memory_size):
 
         self.input_dim = input_dim
         self.output_dim = output_dim
+        self.memory_size = memory_size
 
         self.action_encoder = OneHotEncoder(range(5))
 
@@ -85,15 +86,19 @@ class CnnAgent(object):
 
         return action
 
-    def add_experience(self, experience):
+    def add_experience(self, experiences):
 
-        self.experience.append(experience)
+        for experience in experiences:
+            self.experience.append(experience)
+
+        self.experience = self.experience[:self.memory_size]
 
     def train(self, batch_size=32):
 
         s, a, r, s_, t = [], [], [], [], []
 
-        indices = np.random.choice(list(set(range(len(self.experience)))), batch_size)
+        indices = np.random.choice(list(set(range(len(self.experience)))),
+                                   batch_size)
 
         for index in indices:
 
