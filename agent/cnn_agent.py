@@ -1,12 +1,16 @@
 import numpy as np
 import os
-
+import logging
 from sklearn.preprocessing import OneHotEncoder
 
 import torch
 import torch.nn as nn
 
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+
+logger = logging.getLogger("cnn_agent")
 
 
 class Flatten(torch.nn.Module):
@@ -18,11 +22,12 @@ class Flatten(torch.nn.Module):
         return x.view(x.size(0), -1)
 
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
+class DuelingDQN(nn.Module):
 
-        self.operators = nn.ModuleList([
+    def __init__(self):
+        super(DuelingDQN, self).__init__()
+
+        self.head = nn.ModuleList([
             nn.Conv2d(3, 30, (3, 3)),
             nn.Tanh(),
             nn.Dropout(.1),
@@ -36,6 +41,16 @@ class Net(nn.Module):
             nn.Linear(160, 100),
             nn.Tanh(),
             nn.Dropout(.1),
+        ])
+
+        self.state_value_tail = nn.ModuleList([
+            nn.Linear(100, 50),
+            nn.Tanh(),
+            nn.Dropout(.1),
+            nn.Linear(50, 1)
+        ])
+
+        self.action_value_tail = nn.ModuleList([
             nn.Linear(100, 50),
             nn.Tanh(),
             nn.Dropout(.1),
@@ -43,13 +58,34 @@ class Net(nn.Module):
         ])
 
     def forward(self, x):
-        for operator in self.operators:
+
+        logger.debug("\nHead")
+        logger.debug(x.shape)
+
+        for operator in self.head:
             x = operator(x)
+            logger.debug(x.shape)
+
+        state_value = x
+
+        logger.debug("\nState Value Tail")
+        for operator in self.state_value_tail:
+            state_value = operator(state_value)
+            logger.debug(state_value.shape)
+
+        action_value = x
+
+        logger.debug("\nAction Value Tail")
+        for operator in self.action_value_tail:
+            action_value = operator(action_value)
+            logger.debug(action_value.shape)
+
+        x = state_value + action_value
+
+        logger.debug("\nOutput")
+        logger.debug(x.shape)
 
         return x
-
-    def load(self, path="cnn.pt"):
-        pass
 
 
 class CnnAgent(object):
@@ -62,8 +98,8 @@ class CnnAgent(object):
 
         self.action_encoder = OneHotEncoder(range(5))
 
-        self.net = Net()
-        self.target_net = Net()
+        self.net = DuelingDQN()
+        self.target_net = DuelingDQN()
         self.target_net.load_state_dict(self.net.state_dict())
         self.target_net.eval()
 
@@ -101,7 +137,6 @@ class CnnAgent(object):
                                    batch_size)
 
         for index in indices:
-
             sample = self.experience[index]
 
             s.append(sample["s"])
@@ -126,7 +161,7 @@ class CnnAgent(object):
         s_ = torch.tensor(s_, dtype=torch.float32).to(device)
         t = torch.tensor(t, dtype=torch.float32).unsqueeze(-1).to(device)
 
-        Q_ = self.net(s_)
+        Q_ = self.target_net(s_)
         Q = r + 0.9 * Q_ * (1 - t)
 
         self.optimizer.zero_grad()
@@ -137,6 +172,7 @@ class CnnAgent(object):
         loss.backward()
         self.optimizer.step()
 
+        self.soft_update_target(0.001)
 
     def load(self, path):
         if os.path.isfile(path):
@@ -146,3 +182,18 @@ class CnnAgent(object):
 
     def save(self, path):
         torch.save(self.net.state_dict(), path)
+
+    def soft_update_target(self, tau=0.):
+        for target_net_param, net_param in zip(self.target_net.parameters(),
+                                               self.net.parameters()):
+            target_net_param.data.copy_(
+                tau * net_param.data + (1.0 - tau) * target_net_param.data)
+
+
+if __name__ == "__main__":
+    net = DuelingDQN()
+
+    s = torch.tensor(np.random.rand(1, 3, 10, 10), dtype=torch.float32).to(
+        device)
+
+    net(s)
