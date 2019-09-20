@@ -57,7 +57,7 @@ if __name__ == "__main__":
     from time import strftime, time
 
     environment = Environment(headless=False)
-    agent = Agent(environment.get_state_dimensions(), 5)
+    agent = Agent(environment.get_state_dimensions(), 5, memory_size=1_000)
 
     import matplotlib.pyplot as plt
     import csv
@@ -90,10 +90,6 @@ if __name__ == "__main__":
         statistics_writer.writerow(statistics_column_names)
 
         for epoch in tqdm(range(epochs)):
-
-            times = []
-
-            t0 = time()
 
             environment.reset()
 
@@ -132,35 +128,16 @@ if __name__ == "__main__":
                     agent.save(os.path.join(models_folder,
                                             f"{experiment_id}-{epoch}.agent"))
 
-            t1 = time()
-            times.append(t1 - t0)
-            t0 = t1
-
             experiences = Trainer.run_until_terminal(environment, agent,
                                                      1 - (epoch / epochs),
                                                      max_steps=20)
 
-            t1 = time()
-            times.append(t1 - t0)
-            t0 = t1
-
-            for experience in experiences:
-                agent.add_experience(experience)
-
-            t1 = time()
-            times.append(t1 - t0)
-            t0 = t1
+            agent.add_experiences(experiences)
 
             agent.train()
 
-            t1 = time()
-            times.append(t1 - t0)
-            t0 = t1
-
-            if epoch % 1_000 == 0:
-                tqdm.write(str(times))
-
-        agent.save(os.path.join(models_folder, f"{experiment_id}-{epoch}.agent"))
+        agent.save(
+            os.path.join(models_folder, f"{experiment_id}-{epoch}.agent"))
 
     statistics = pd.read_csv(path_statistics_file)
 

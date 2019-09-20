@@ -64,38 +64,6 @@ class HuntingGrounds(object):
 
         return state
 
-    # def get_state_image(self, resolution=(100, 100), channels_first=False):
-    #
-    #     fig = Figure(figsize=(5, 5))
-    #     canvas = FigureCanvas(fig)
-    #     ax = fig.gca()
-    #
-    #     ax.imshow(self.world, cmap="Blues", alpha=.25)
-    #
-    #     ax.autoscale(False)
-    #
-    #     ax.scatter(self.hunter[0], self.hunter[1], c="brown", s=500)
-    #
-    #     ax.scatter(self.prey[0], self.prey[1], c="grey", s=500)
-    #
-    #     fig.subplots_adjust(bottom=0, top=1, left=0, right=1)
-    #
-    #     canvas.draw()  # draw the canvas, cache the renderer
-    #
-    #     width, height = fig.get_size_inches() * fig.get_dpi()
-    #
-    #     width, height = int(width), int(height)
-    #
-    #     img = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(
-    #         height, width, 3)
-    #
-    #     img = imresize(img, resolution + (3,))
-    #
-    #     if channels_first:
-    #         img = np.transpose(img, (2, 0, 1))
-    #
-    #     return img
-
     def get_state(self, mode='raw'):
         if mode == 'raw':
             return self.get_state_raw()
@@ -127,9 +95,6 @@ class HuntingGrounds(object):
         if self.prey == self.hunter:
             terminal = True
             reward = 1
-        # elif self.world[tuple(self.hunter)] > np.random.random():
-        #     terminal = True
-        #     reward = -1
         else:
             terminal = False
             reward = -.1
@@ -152,22 +117,14 @@ class HuntingGrounds(object):
 if __name__ == "__main__":
     import tempfile
 
-    env = HuntingGrounds((5, 5), True)
+    env = HuntingGrounds((5, 5), False)
 
-    state = env.get_state()
-    print(state.shape)
+    for epoch in range(10):
+        env.reset()
 
-    with tempfile.NamedTemporaryFile(suffix=".png") as file:
-        env.render(file)
+        for step in range(100):
 
-        file.seek(0)
+            with tempfile.NamedTemporaryFile(suffix=".png") as file:
+                env.render(file)
 
-        import matplotlib.pyplot as plt
-        import matplotlib.image as mpimg
-
-        img = mpimg.imread(file)
-        plt.imshow(img)
-
-        plt.axis('off')
-
-        plt.show()
+            env.step(np.random.randint(0,5))

@@ -10,8 +10,6 @@ device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
-logger = logging.getLogger("cnn_agent")
-
 
 class Flatten(torch.nn.Module):
 
@@ -26,6 +24,10 @@ class DuelingDQN(nn.Module):
 
     def __init__(self):
         super(DuelingDQN, self).__init__()
+
+        self.logger = logging.getLogger("dueling_dqn")
+
+        self.logger.setLevel(logging.INFO)
 
         self.head = nn.ModuleList([
             nn.Conv2d(3, 30, (3, 3)),
@@ -59,31 +61,31 @@ class DuelingDQN(nn.Module):
 
     def forward(self, x):
 
-        logger.debug("\nHead")
-        logger.debug(x.shape)
+        self.logger.debug("\nHead")
+        self.logger.debug(x.shape)
 
         for operator in self.head:
             x = operator(x)
-            logger.debug(x.shape)
+            self.logger.debug(x.shape)
 
         state_value = x
 
-        logger.debug("\nState Value Tail")
+        self.logger.debug("\nState Value Tail")
         for operator in self.state_value_tail:
             state_value = operator(state_value)
-            logger.debug(state_value.shape)
+            self.logger.debug(state_value.shape)
 
         action_value = x
 
-        logger.debug("\nAction Value Tail")
+        self.logger.debug("\nAction Value Tail")
         for operator in self.action_value_tail:
             action_value = operator(action_value)
-            logger.debug(action_value.shape)
+            self.logger.debug(action_value.shape)
 
         x = state_value + action_value
 
-        logger.debug("\nOutput")
-        logger.debug(x.shape)
+        self.logger.debug("\nOutput")
+        self.logger.debug(x.shape)
 
         return x
 
@@ -122,7 +124,9 @@ class CnnAgent(object):
 
         return action
 
-    def add_experience(self, experiences):
+    def add_experiences(self, experiences):
+
+        assert type(experiences) is list
 
         for experience in experiences:
             self.experience.append(experience)
@@ -137,7 +141,9 @@ class CnnAgent(object):
                                    batch_size)
 
         for index in indices:
+
             sample = self.experience[index]
+
 
             s.append(sample["s"])
             a.append(sample["a"])
